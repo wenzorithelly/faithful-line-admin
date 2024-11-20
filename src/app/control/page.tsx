@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { SupabaseService, DatabaseClient } from '@/services/supabaseService';
 import { WaAPIService } from '@/services/waapiService';
 import { filterClientsData, UIClient } from '@/utils/clientUtils';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 import {
   Box,
@@ -57,7 +58,7 @@ const SnackbarAlert = React.forwardRef<HTMLDivElement, AlertProps>(function Snac
 });
 
 export default function ControlPage() {
-  const supabase = useRef(new SupabaseService()).current;
+  const supabaseService = useRef(new SupabaseService()).current;
   const waapi = useRef(new WaAPIService()).current;
 
   // State Variables
@@ -101,7 +102,7 @@ export default function ControlPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const clients = await supabase.fetchDataControl();
+        const clients = await supabaseService.fetchDataControl();
         if (isMounted) {
           setData(clients);
           setSelectedClients(new Set());
@@ -117,7 +118,7 @@ export default function ControlPage() {
     return () => {
       isMounted = false;
     };
-  }, [supabase]);
+  }, [supabaseService]);
 
   // Transform DatabaseClient[] to UIClient[]
   useEffect(() => {
@@ -129,6 +130,58 @@ export default function ControlPage() {
     }));
     setFilteredData(filterClientsData(uiClients, searchQuery));
   }, [data, searchQuery]);
+
+  // Real-Time Subscription Setup
+  useEffect(() => {
+    // Initialize real-time subscription
+    const channel: RealtimeChannel = supabaseService.supabase
+      .channel('control-page-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients',
+        },
+        (payload: any) => {
+          console.log('Realtime change received:', payload);
+          handleRealtimeChange(payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseService.supabase.removeChannel(channel);
+    };
+  }, [supabaseService]);
+
+  // Handle Real-Time Changes
+  const handleRealtimeChange = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    if (eventType === 'INSERT') {
+      const newClient = supabaseService.mapClientData(newRecord);
+      setData((prevData) => {
+        const exists = prevData.some((client) => client.phone === newClient.phone);
+        if (exists) {
+          return prevData;
+        }
+        return [newClient, ...prevData];
+      });
+    } else if (eventType === 'UPDATE') {
+      const updatedClient = supabaseService.mapClientData(newRecord);
+      setData((prevData) =>
+        prevData.map((client) =>
+          client.phone === updatedClient.phone ? updatedClient : client
+        )
+      );
+    } else if (eventType === 'DELETE') {
+      const deletedPhone = oldRecord.number;
+      setData((prevData) =>
+        prevData.filter((client) => client.phone !== deletedPhone)
+      );
+    }
+  };
 
   // Handlers
   const handleSelectClient = (phone: string, selected: boolean) => {
@@ -143,7 +196,6 @@ export default function ControlPage() {
     });
   };
 
-
   const handleScanSuccess = async (decodedText: string, decodedResult: any) => {
     const uniqueCode = decodedText.trim();
 
@@ -153,7 +205,7 @@ export default function ControlPage() {
     }
 
     try {
-      const result = await supabase.handleQRCodeScan(uniqueCode);
+      const result = await supabaseService.handleQRCodeScan(uniqueCode);
       if (!result.success) {
         setScanError(result.message);
         return;
@@ -180,7 +232,7 @@ export default function ControlPage() {
     setLoading(true);
     setError(null);
     try {
-      const clients = await supabase.fetchDataControl();
+      const clients = await supabaseService.fetchDataControl();
       clients.sort((a, b) => Number(b.entered_at) - Number(a.entered_at));
       setData(clients);
       setSelectedClients(new Set());
@@ -200,9 +252,9 @@ export default function ControlPage() {
       await Promise.all(
         Array.from(selectedClients).map(async (phone) => {
           if (action === 'present') {
-            await supabase.updateClientPresence(phone);
+            await supabaseService.updateClientPresence(phone);
           } else if (action === 'left') {
-            await supabase.updateClientLeft(phone);
+            await supabaseService.updateClientLeft(phone);
           }
         })
       );
@@ -221,7 +273,7 @@ export default function ControlPage() {
     setError(null);
     setMessageSent(false);
     try {
-      const messageData = await supabase.fetchDefaultMessage();
+      const messageData = await supabaseService.fetchDefaultMessage();
       const message =
         messageData.message ||
         'Olá, sua vez chegou, dirija-se à Sala de Oração.';
@@ -261,7 +313,7 @@ export default function ControlPage() {
       setLoading(true);
       setError(null);
       try {
-        await supabase.deleteClient(clientToDelete);
+        await supabaseService.deleteClient(clientToDelete);
         setSnackbarMessage('Cliente deletado com sucesso.');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
