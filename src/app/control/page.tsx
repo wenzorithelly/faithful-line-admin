@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { SupabaseService, DatabaseClient } from '@/services/supabaseService';
+import supabase from '@/services/supabaseService';
 import { WaAPIService } from '@/services/waapiService';
 import { filterClientsData, UIClient } from '@/utils/clientUtils';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -28,8 +29,8 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
-  Alert as MuiAlert, // Import Alert as MuiAlert to avoid naming conflicts
-  AlertProps, // Import AlertProps for typing
+  Alert as MuiAlert,
+  AlertProps,
 } from '@mui/material';
 
 import {
@@ -134,7 +135,7 @@ export default function ControlPage() {
   // Real-Time Subscription Setup
   useEffect(() => {
     // Initialize real-time subscription
-    const channel: RealtimeChannel = supabaseService.supabase
+    const channel: RealtimeChannel = supabase
       .channel('control-page-channel')
       .on(
         'postgres_changes',
@@ -151,7 +152,7 @@ export default function ControlPage() {
       .subscribe();
 
     return () => {
-      supabaseService.supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [supabaseService]);
 
@@ -160,7 +161,7 @@ export default function ControlPage() {
     const { eventType, new: newRecord, old: oldRecord } = payload;
 
     if (eventType === 'INSERT') {
-      const newClient = supabaseService.mapClientData(newRecord);
+      const newClient = supabaseService.getMappedClientData(newRecord);
       setData((prevData) => {
         const exists = prevData.some((client) => client.phone === newClient.phone);
         if (exists) {
@@ -169,7 +170,7 @@ export default function ControlPage() {
         return [newClient, ...prevData];
       });
     } else if (eventType === 'UPDATE') {
-      const updatedClient = supabaseService.mapClientData(newRecord);
+      const updatedClient = supabaseService.getMappedClientData(newRecord);
       setData((prevData) =>
         prevData.map((client) =>
           client.phone === updatedClient.phone ? updatedClient : client

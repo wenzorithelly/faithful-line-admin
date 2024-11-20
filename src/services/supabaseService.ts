@@ -328,4 +328,8 @@ export class SupabaseService {
       return false
     }
   }
+
+  public getMappedClientData(client: any): DatabaseClient {
+    return this.mapClientData(client);
+  }
 }
