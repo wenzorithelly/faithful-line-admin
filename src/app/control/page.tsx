@@ -79,6 +79,7 @@ export default function ControlPage() {
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const [isProcessingScan, setIsProcessingScan] = useState<boolean>(false);
 
   // Debounced Search Handler
   const debouncedSearch = useRef(
@@ -198,12 +199,19 @@ export default function ControlPage() {
   };
 
   const handleScanSuccess = async (decodedText: string, decodedResult: any) => {
+    if (isProcessingScan) return
+    setIsProcessingScan(true);
+    setScanning(false);
+
     const uniqueCode = decodedText.trim();
 
     if (!uniqueCode) {
       setScanError('Invalid QR code data.');
+      setScanning(false)
       return;
     }
+
+    setScanning(false)
 
     try {
       const result = await supabaseService.handleQRCodeScan(uniqueCode);
@@ -218,10 +226,11 @@ export default function ControlPage() {
       setSnackbarOpen(true);
 
       refreshData();
-      setScanning(false);
     } catch (err) {
       console.error('Error handling scan:', err);
       setScanError('An unexpected error occurred.');
+    } finally {
+      setIsProcessingScan(false);
     }
   };
 
