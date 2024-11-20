@@ -1,273 +1,57 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Stack } from '@mui/material';
-import { useLanguage } from '@/context/LanguageContext';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Language as LanguageIcon,
-  PersonAdd as PersonAddIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
-import { RealtimeChannel } from "@supabase/supabase-js";
-import supabase from "@/services/supabaseService";
+import { LockClosedIcon } from '@heroicons/react/solid';
 
-export default function LandingPage() {
-  const { language, setLanguage } = useLanguage();
-  const router = useRouter();
-  const [subscriptionsOpen, setSubscriptionsOpen] = useState(true);
-  const [isLoading, setIsLoading] = useState(true); // Optional: For loading state
+const APP_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || '1234';
 
-  useEffect(() => {
-    // Function to fetch the initial "subscriptions" value
-    const fetchInitialSubscriptionStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('configs')
-          .select('subscription')
-          .single();
+const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
+  const [password, setPassword] = useState('');
 
-        if (error) {
-          console.error('Error fetching subscription status:', error);
-          // Optionally, handle the error state here
-        } else {
-          setSubscriptionsOpen(data.subscription);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-      } finally {
-        setIsLoading(false); // Set loading to false after fetching
-      }
-    };
-
-    fetchInitialSubscriptionStatus();
-
-    // Set up the real-time listener
-    const channel: RealtimeChannel = supabase
-      .channel('configs-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'configs',
-        },
-        (payload: any) => {
-          handleRealtimeChange(payload);
-        }
-      )
-      .subscribe();
-
-    // Cleanup the channel on unmount
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Handler for real-time changes
-  const handleRealtimeChange = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
-
-    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-      if (newRecord && typeof newRecord.subscription !== 'undefined') {
-        setSubscriptionsOpen(newRecord.subscription);
-      }
-    } else if (eventType === 'DELETE') {
-      if (oldRecord && typeof oldRecord.subscription !== 'undefined') {
-        // Assuming that deletion means subscriptions are closed
-        setSubscriptionsOpen(false);
-      }
+  const handleLogin = () => {
+    if (password === APP_PASSWORD) {
+      onLogin();
+    } else {
+      alert('Senha inválida. Por favor, tente novamente.');
     }
   };
 
-  const handleLanguageSelection = (lang: 'en' | 'pt') => {
-    setLanguage(lang);
-  };
-
-  const navigateToRegister = () => {
-    router.push('/register');
-  };
-
-  const navigateToCheckSpot = () => {
-    router.push('/check-spot');
-  };
-
-  // Optional: Show a loading indicator while fetching initial data
-  if (isLoading) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh"
-        textAlign="center"
-        p={4}
-        sx={{
-          bgcolor: 'background.default',
-          color: 'text.primary',
-          backgroundImage: 'url("/school_of_prophets.jpeg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <Typography variant="h4" component="h1" fontWeight="bold" mb={4}>
-          FAITHFUL_LINE
-        </Typography>
-        <Typography variant="h5" component="h2" fontWeight="medium" mb={6}>
-          {language === 'pt'
-            ? 'Carregando...'
-            : 'Loading...'}
-        </Typography>
-      </Box>
-    );
-  }
-
-  // If language is not set, show language selection
-  if (!language) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh"
-        textAlign="center"
-        p={4}
-        sx={{
-          bgcolor: 'background.default',
-          color: 'text.primary',
-          backgroundImage: 'url("/school_of_prophets.jpeg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <Typography variant="h4" component="h1" fontWeight="bold" mb={4} color="white">
-          <LanguageIcon fontSize="large" sx={{ mr: 1 }} />
-          Escolha seu idioma / Choose your language
-        </Typography>
-
-        <Stack spacing={2} width="100%" maxWidth={300}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleLanguageSelection('pt')}
-            startIcon={
-              <img
-                src="/images/flags/brasil.png"
-                alt="Português (BR)"
-                width="24"
-                height="24"
-              />
-            }
-            size="large"
-            fullWidth
-          >
-            Português (BR)
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => handleLanguageSelection('en')}
-            startIcon={
-              <img
-                src="/images/flags/EUA.png"
-                alt="English"
-                width="24"
-                height="24"
-              />
-            }
-            size="large"
-            fullWidth
-          >
-            English
-          </Button>
-        </Stack>
-      </Box>
-    );
-  }
-
-  if (!subscriptionsOpen) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh"
-        textAlign="center"
-        p={4}
-        sx={{
-          bgcolor: 'background.default',
-          color: 'text.primary',
-          backgroundImage: 'url("/school_of_prophets.jpeg")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <Typography variant="h4" component="h1" fontWeight="bold" mb={40} color="white">
-          FAITHFUL_LINE
-        </Typography>
-
-        <Typography variant="h5" component="h2" fontWeight="bold" mb={0} color="error">
-          {language === 'pt'
-            ? 'Cadastro para a Sala de Oração encerrado.'
-            : 'Registrations for the Prayer Room are closed.'}
-        </Typography>
-      </Box>
-    );
-  }
-
-  // Render navigation options after language selection and if subscriptions are open
   return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      height="100vh"
-      textAlign="center"
-      p={4}
-      sx={{
-        bgcolor: 'background.default',
-        color: 'text.primary',
-        backgroundImage: 'url("/school_of_prophets.jpeg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}
-    >
-      <Typography variant="h4" component="h1" fontWeight="bold" mb={10} color="white">
-        FAITHFUL_LINE
-      </Typography>
-      <Typography variant="h5" component="h2" fontWeight="medium" pt={44} mb={6} color="white">
-        {language === 'pt'
-          ? 'Bem-vindo à Fila Digital da Sala de Oração'
-          : 'Welcome to the Digital Line of the Prayer Room'}
-      </Typography>
-      <Stack spacing={2} width="100%" maxWidth={400} mt={-2}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={navigateToRegister}
-          size="large"
-          fullWidth
-          startIcon={<PersonAddIcon />}
-        >
-          {language === 'pt' ? 'Registrar-se' : 'Register'}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={navigateToCheckSpot}
-          size="large"
-          color="secondary"
-          fullWidth
-          startIcon={<CheckCircleIcon />}
-        >
-          {language === 'pt'
-            ? 'Verificar Minha Posição'
-            : 'Check My Spot'}
-        </Button>
-      </Stack>
-    </Box>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100">
+      <div className="max-w-sm w-full bg-white shadow-md rounded-lg p-6">
+        <div className="flex items-center justify-center mb-6">
+          <LockClosedIcon className="h-12 w-12 text-blue-500" />
+        </div>
+        <h2 className="text-2xl font-semibold text-center mb-4">Acesso Restrito</h2>
+        <input
+          type="password"
+          placeholder="Senha"
+          className="input rounded mb-4 w-full"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="btn py-2 rounded w-full" onClick={handleLogin}>
+          Entrar
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/control');
+    }
+  }, [isAuthenticated, router]);
+
+  return (
+    <div>
+      {!isAuthenticated && <LoginPage onLogin={() => setIsAuthenticated(true)} />}
+    </div>
   );
 }
