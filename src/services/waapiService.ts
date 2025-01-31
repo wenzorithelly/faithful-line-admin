@@ -68,8 +68,8 @@ export class WaAPIService {
             // Send both messages in parallel
             const responseOriginal = await axios.post(endpoint, payloadOriginal, { headers: this.headers });
 
-            // Wait for 2 seconds (2000 milliseconds)
-            await sleep(2000);
+            // Wait for 1 seconds (1000 milliseconds)
+            await sleep(1000);
 
             // Make the second POST request
             const responseModified = await axios.post(endpoint, payloadModified, { headers: this.headers });

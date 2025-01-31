@@ -152,7 +152,7 @@ export default function PresencePage() {
   setError(null);
 
   try {
-    const nextFiftyClients = filteredData.slice(0, 100); // Get the first 100 clients
+    const nextFiftyClients = filteredData.slice(0, 10);
     const messageData = await supabaseService.fetchDefaultMessage();
     const message = messageData.message || 'Olá, sua vez chegou';
 
@@ -167,7 +167,7 @@ export default function PresencePage() {
       if (success) {
         await supabaseService.updateMessageSentStatus(client.phone);
       }
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     setMessageSent(true);
@@ -198,7 +198,7 @@ export default function PresencePage() {
         if (success) {
           await supabaseService.updateMessageSentStatus(phone);
         }
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       setMessageSent(true);
@@ -351,7 +351,7 @@ export default function PresencePage() {
         onClick={sendToNextFifty}
         size="small"
         >
-        Enviar Mensagem para Próximos 100
+        Enviar Mensagem para Próximos 10
       </Button>
 
 
