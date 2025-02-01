@@ -261,8 +261,9 @@ export class SupabaseService {
 
         if (updateError) {
           console.error('Error updating client entered at:', updateError);
-          return { success: true, message: `Usuário ${client.name} como entrou na sala.` };
+          return { success: false, message: 'Failed to update client status.' };
         }
+        return { success: true, message: `Usuário ${client.name} como entrou na sala.` };
       } else {
           return { success: true, message: 'Did nothing' }
       }
