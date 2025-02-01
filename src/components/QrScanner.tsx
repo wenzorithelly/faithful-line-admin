@@ -33,7 +33,7 @@ const QrScanner: React.FC<QrScannerProps> = ({ onScanSuccess, onScanFailure, onS
   };
 
   const startScanner = async (cameraId: string) => {
-    if (!html5QrCodeRef.current || isScanning) return;
+    if (!html5QrCodeRef.current) return;
 
     try {
       await html5QrCodeRef.current.start(
