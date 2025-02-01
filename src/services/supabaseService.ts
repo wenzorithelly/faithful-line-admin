@@ -251,7 +251,7 @@ export class SupabaseService {
         }
 
         return { success: true, message: `Usuário ${client.name} marcado como saiu da sala.` };
-      } else if (!client.entered_at){
+      } else if (!client.entered_at) {
         const { error: updateError } = await supabase
           .from('clients')
           .update({
@@ -262,10 +262,9 @@ export class SupabaseService {
         if (updateError) {
           console.error('Error updating client entered at:', updateError);
           return { success: true, message: `Usuário ${client.name} como entrou na sala.` };
-      }
-        else {
-          return { success: true, message: 'Did nothing' }
         }
+      } else {
+          return { success: true, message: 'Did nothing' }
       }
     } catch (error) {
       console.error('Error handling QR code scan:', error);
